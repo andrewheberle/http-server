@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Server</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .breadcrumbs { list-style-type: none; padding: 0; }
+        .breadcrumbs li { display: inline; }
+        .file-list { list-style-type: none; padding: 0; }
+        .file-list li { margin: 5px 0; }
+        .file-list a { text-decoration: none; color: #007BFF; }
+        .file-list a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>File Server</h1>
+    {{- $trimmed := trimSuffix (trimPrefix .Path "/") "/" -}}
+    {{- $breadCrumbs := split $trimmed "/" -}}
+    {{- $path := "/" -}}
+    <ul class="breadcrumbs">
+    <li><a href="{{ $path }}">Home</a></li>
+    {{- range $n, $v := $breadCrumbs -}}
+    {{- $path = pathjoin $path $v -}}
+    <li> / <a href="{{ $path }}{{ if not (hasSuffix $path "/") }}/{{ end }}">{{ $v }}</a></li>
+    {{- end -}}
+    </ul>
+    <ul class="file-list">
+        {{- range .FileList -}}
+        {{- if eq true (hasSuffix .Name ".svg") (hasSuffix .Name ".ts") (hasSuffix .Name "_Original.m3u8") (hasSuffix .Name "_1080p.m3u8") (hasSuffix .Name "_720p.m3u8") }}{{ continue }}{{ end -}}
+        <li><a href="{{ .Name }}{{ if .IsDir }}/{{ end }}">{{ if .IsDir }} <img src="/folder.svg" alt="folder">{{ else }}<img src="/file.svg" alt="file">{{ end }} {{ .Name }}</a></li>
+        {{- end -}}
+    </ul>
+</body>
+</html>
