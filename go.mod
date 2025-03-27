@@ -9,6 +9,7 @@ require (
 	github.com/cloudflare/certinel v0.4.1
 	github.com/oklog/run v1.1.0
 	github.com/samber/slog-http v1.6.0
+	github.com/spf13/afero v1.14.0
 )
 
 require (
@@ -20,4 +21,5 @@ require (
 	go.opentelemetry.io/otel v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 )

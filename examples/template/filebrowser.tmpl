@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Server</title>
+    <title>File Server Example</title>
     <style>
         body { font-family: Arial, sans-serif; }
         .breadcrumbs { list-style-type: none; padding: 0; }
@@ -15,7 +15,7 @@
     </style>
 </head>
 <body>
-    <h1>File Server</h1>
+    <h1>File Server Example</h1>
     {{- $trimmed := trimSuffix (trimPrefix .Path "/") "/" -}}
     {{- $breadCrumbs := split $trimmed "/" -}}
     {{- $path := "/" -}}
@@ -28,8 +28,7 @@
     </ul>
     <ul class="file-list">
         {{- range .FileList -}}
-        {{- if eq true (hasSuffix .Name ".svg") (hasSuffix .Name ".ts") (hasSuffix .Name "_Original.m3u8") (hasSuffix .Name "_1080p.m3u8") (hasSuffix .Name "_720p.m3u8") }}{{ continue }}{{ end -}}
-        <li><a href="{{ .Name }}{{ if .IsDir }}/{{ end }}">{{ if .IsDir }} <img src="/folder.svg" alt="folder">{{ else }}<img src="/file.svg" alt="file">{{ end }} {{ .Name }}</a></li>
+        <li><a href="{{ .Name }}{{ if .IsDir }}/{{ end }}">{{ if .IsDir }} <img src="/images/folder.svg" alt="folder">{{ else }}<img src="/images/file-earmark.svg" alt="file">{{ end }} {{ .Name }}</a></li>
         {{- end -}}
     </ul>
 </body>
