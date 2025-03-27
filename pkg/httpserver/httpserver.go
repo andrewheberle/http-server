@@ -17,17 +17,24 @@ import (
 
 	"github.com/cloudflare/certinel/fswatcher"
 	"github.com/oklog/run"
+	"github.com/rs/cors"
 	sloghttp "github.com/samber/slog-http"
 	"github.com/spf13/afero"
 )
 
 type HttpServer struct {
-	httpRoot        string
-	certificateFile string
-	keyFile         string
-	readTimeout     time.Duration
-	writeTimeout    time.Duration
-	templatePath    string
+	httpRoot             string
+	certificateFile      string
+	keyFile              string
+	readTimeout          time.Duration
+	writeTimeout         time.Duration
+	templatePath         string
+	enableCors           bool
+	corsAllowedOrigins   []string
+	corsAllowedMethods   []string
+	corsAllowedHeaders   []string
+	corsAllowCredentials bool
+	corsMaxAge           time.Duration
 
 	g               run.Group
 	logger          *slog.Logger
@@ -114,8 +121,26 @@ func New(listen, root string, opts ...HttpServerOption) (*HttpServer, error) {
 		mux.HandleFunc("/", hs.fileHandler)
 	}
 
-	// add logging middleware
-	handler := sloghttp.Recovery(mux)
+	// add final chain of handlers/middleware
+	var handler http.Handler
+	if hs.enableCors {
+		hs.logger.Debug(
+			"enabling CORS support",
+			"origins", hs.corsAllowedOrigins,
+			"methods", hs.corsAllowedMethods,
+			"headers", hs.corsAllowedHeaders,
+			"credentials", hs.corsAllowCredentials,
+			"max-age", hs.corsMaxAge,
+		)
+		c := cors.New(cors.Options{
+			AllowedOrigins:   hs.corsAllowedOrigins,
+			AllowedMethods:   hs.corsAllowedMethods,
+			AllowedHeaders:   hs.corsAllowedHeaders,
+			AllowCredentials: hs.corsAllowCredentials,
+		})
+		handler = c.Handler(mux)
+	}
+	handler = sloghttp.Recovery(handler)
 	handler = sloghttp.New(hs.logger)(handler)
 
 	// set up http server

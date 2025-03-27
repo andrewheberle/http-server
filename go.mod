@@ -8,6 +8,7 @@ require (
 	github.com/bep/simplecobra v0.6.0
 	github.com/cloudflare/certinel v0.4.1
 	github.com/oklog/run v1.1.0
+	github.com/rs/cors v1.11.1
 	github.com/samber/slog-http v1.6.0
 	github.com/spf13/afero v1.14.0
 )

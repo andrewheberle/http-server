@@ -41,3 +41,38 @@ func WithFs(fs afero.Fs) HttpServerOption {
 		hs.fs = fs
 	}
 }
+
+func WithCorsAllowedOrigins(origins ...string) HttpServerOption {
+	return func(hs *HttpServer) {
+		hs.enableCors = true
+		hs.corsAllowedOrigins = origins
+	}
+}
+
+func WithCorsAllowedMethods(methods ...string) HttpServerOption {
+	return func(hs *HttpServer) {
+		hs.enableCors = true
+		hs.corsAllowedMethods = methods
+	}
+}
+
+func WithCorsAllowedHeaders(headers ...string) HttpServerOption {
+	return func(hs *HttpServer) {
+		hs.enableCors = true
+		hs.corsAllowedHeaders = headers
+	}
+}
+
+func WithCorsAllowCredentials(credentials bool) HttpServerOption {
+	return func(hs *HttpServer) {
+		hs.enableCors = true
+		hs.corsAllowCredentials = credentials
+	}
+}
+
+func WithCorsMaxAge(age time.Duration) HttpServerOption {
+	return func(hs *HttpServer) {
+		hs.enableCors = true
+		hs.corsMaxAge = age
+	}
+}

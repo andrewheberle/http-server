@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"regexp"
 	"time"
@@ -16,15 +17,20 @@ type rootCommand struct {
 	name string
 
 	// flags
-	listenAddress   string
-	certificateFile string
-	keyFile         string
-	httpRoot        string
-	templatePath    string
-	readTimeout     time.Duration
-	writeTimeout    time.Duration
-	includeRegexp   string
-	debug           bool
+	listenAddress        string
+	certificateFile      string
+	keyFile              string
+	httpRoot             string
+	templatePath         string
+	readTimeout          time.Duration
+	writeTimeout         time.Duration
+	includeRegexp        string
+	debug                bool
+	corsAllowedOrigins   []string
+	corsAllowedMethods   []string
+	corsAllowedHeaders   []string
+	corsAllowCredentials bool
+	corsMaxAge           time.Duration
 
 	hs *httpserver.HttpServer
 
@@ -50,6 +56,11 @@ func (c *rootCommand) Init(cd *simplecobra.Commandeer) error {
 	cmd.Flags().StringVar(&c.templatePath, "template", "", "Template to render file browser")
 	cmd.Flags().StringVar(&c.includeRegexp, "include", "", "Regexp of files to include")
 	cmd.Flags().BoolVar(&c.debug, "debug", false, "Enable debug logging")
+	cmd.Flags().StringSliceVar(&c.corsAllowedOrigins, "cors-allowed-origins", []string{"*"}, "CORS Allowed Origins")
+	cmd.Flags().StringSliceVar(&c.corsAllowedMethods, "cors-allowed-methods", []string{http.MethodGet, http.MethodPost}, "CORS Allowed Methods")
+	cmd.Flags().StringSliceVar(&c.corsAllowedHeaders, "cors-allowed-headers", []string{}, "CORS Allowed Headers")
+	cmd.Flags().BoolVar(&c.corsAllowCredentials, "cors-allowed-credentials", false, "CORS Allow Credentials")
+	cmd.Flags().DurationVar(&c.corsMaxAge, "cors-max-age", 0, "CORS Max Age")
 
 	return nil
 }
@@ -89,6 +100,23 @@ func (c *rootCommand) PreRun(this, runner *simplecobra.Commandeer) error {
 		}
 		fs := afero.NewRegexpFs(afero.NewOsFs(), re)
 		opts = append(opts, httpserver.WithFs(fs))
+	}
+
+	// add cors support
+	if c.corsAllowCredentials {
+		opts = append(opts, httpserver.WithCorsAllowCredentials(true))
+	}
+	if len(c.corsAllowedHeaders) > 0 {
+		opts = append(opts, httpserver.WithCorsAllowedHeaders(c.corsAllowedHeaders...))
+	}
+	if len(c.corsAllowedMethods) > 0 {
+		opts = append(opts, httpserver.WithCorsAllowedMethods(c.corsAllowedMethods...))
+	}
+	if len(c.corsAllowedOrigins) > 0 {
+		opts = append(opts, httpserver.WithCorsAllowedOrigins(c.corsAllowedOrigins...))
+	}
+	if c.corsMaxAge > 0 {
+		opts = append(opts, httpserver.WithCorsMaxAge(c.corsMaxAge))
 	}
 
 	// set up server

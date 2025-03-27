@@ -12,6 +12,19 @@
         .file-list li { margin: 5px 0; }
         .file-list a { text-decoration: none; color: #007BFF; }
         .file-list a:hover { text-decoration: underline; }
+        .absolute { position: absolute; }
+        .top-0 { top: 0; }
+        .left-0 { left: 0; }
+        .right-0 { right: 0; }
+        .bottom-0 { bottom: 0; }
+        .bg-white { background-color: #ffffff; }
+        .block { display: block; }
+        .inline-block { display: inline-block; }
+        .cursor-pointer { cursor: pointer; }
+        .w-full { width: 100%; }
+        .h-vh { height: 100vh; }
+        .text-right { text-align: right; }
+        .align-top { vertical-align: top; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.18/hls.min.js" integrity="sha512-hARxLWym80kd0Bzl5/93OuW1ujaKfvmJ90yTKak/RB67JuNIjtErU2H7H3bteyfzMuqiSK0tXarT7eK6lEWBBA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs-focus/3.14.9/cdn.min.js" integrity="sha512-cbnb6RLeH6MQInYpFTaBZhIvqoV1SQMCT7gS/lcz5U5EbifRo1yHOlDHZOP0i/2oo7G9rSNpSGuqHdK3jByq2Q==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
@@ -31,14 +44,14 @@
     </ul>
     <ul class="file-list">
         {{- range $n, $v := .FileList -}}
-        {{- if and (eq $v.Name "images") ($.IsDir) }}{{ continue }}{{ end -}}
+        {{- if and (eq $v.Name "images") (.IsDir) }}{{ continue }}{{ end -}}
         {{- if eq true (hasSuffix $v.Name "_2160p.m3u8") (hasSuffix $v.Name "_1080p.m3u8") (hasSuffix $v.Name "_720p.m3u8") (hasSuffix $v.Name ".ts") (hasSuffix $v.Name "_Original.svg") }}{{ continue }}{{ end -}}
         <li x-data="player('video{{ $n }}', '{{ $v.Name }}')">
             <a href="{{ $v.Name }}{{ if $v.IsDir }}/{{ end }}"{{ if not $v.IsDir }} @click.prevent="openPlayer"{{ end }}>{{ if $v.IsDir }} <img src="/images/folder.svg" alt="folder">{{ else }}<img src="/images/file-earmark.svg" alt="file">{{ end }} {{ $v.Name }}</a>
             <template x-teleport="body">
-                <div x-show="open" x-trap="open">
-                    <img src="/images/x-lg.svg" alt="Close" @click="closePlayer">
-                    <video id="video{{ $n }}"></video>
+                <div class="absolute top-0 bottom-0 left-0 right-0 bg-white" x-show="open" x-trap.inert="open">
+                    <video id="video{{ $n }}" class="h-vh" controls></video>
+                    <img class="cursor-pointer align-top" src="/images/x-lg.svg" alt="Close" @click="closePlayer">
                 </div>
             </template>
         </li>
@@ -60,20 +73,6 @@
                 if (Hls.isSupported()) {
                     console.log(`Hls.isSupported(): id = ${this.id}, src = ${this.src}`);
                     this.hls = new Hls();
-                    this.hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-                        console.log('video and hls.js are now bound together !');
-                    });
-                    this.hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-                        console.log(`manifest loaded, found ${data.levels.length} quality level`);
-                    });
-                    this.hls.on(Hls.Events.ERROR, function (event, data) {
-                        var errorType = data.type;
-                        var errorDetails = data.details;
-                        var errorFatal = data.fatal;
-
-                        console.log(`HLS Error: ${errorType} ${errorDetails} ${event}`);
-                    });
-                    
                     this.hls.loadSource(this.src);
                     this.hls.attachMedia(this.video);
                 }
