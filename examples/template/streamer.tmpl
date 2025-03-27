@@ -26,9 +26,9 @@
         .text-right { text-align: right; }
         .align-top { vertical-align: top; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.18/hls.min.js" integrity="sha512-hARxLWym80kd0Bzl5/93OuW1ujaKfvmJ90yTKak/RB67JuNIjtErU2H7H3bteyfzMuqiSK0tXarT7eK6lEWBBA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs-focus/3.14.9/cdn.min.js" integrity="sha512-cbnb6RLeH6MQInYpFTaBZhIvqoV1SQMCT7gS/lcz5U5EbifRo1yHOlDHZOP0i/2oo7G9rSNpSGuqHdK3jByq2Q==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.9/cdn.min.js" integrity="sha512-KSdieUYxSxr/laB3Bh5TP8GAng49b2qRfdcnFvh8OuPpPgksA189OQ9v1A3gIz5P9s3A4aXMe5uiHLMfla60Uw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
     <h1>File Server Example</h1>
@@ -66,19 +66,45 @@
             hls: null,
             open: false,
             openPlayer() {
-                console.log(`openPlayer(): id = ${this.id}, src = ${this.src}`);
                 this.video = document.getElementById(this.id)
                 this.open = true;
                 
                 if (Hls.isSupported()) {
-                    console.log(`Hls.isSupported(): id = ${this.id}, src = ${this.src}`);
-                    this.hls = new Hls();
+                    var config = {
+                        capLevelToPlayerSize: true,
+                        debug: true,
+                    };
+
+                    this.hls = new Hls(config);
+
+                    let hls = this.hls;
+                    this.hls.on(Hls.Events.ERROR, function (event, data) {
+                        if (data.fatal) {
+                            switch (data.type) {
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.log('fatal media error encountered, try to recover');
+                                hls.recoverMediaError();
+                                break;
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.error('fatal network error encountered', data);
+                                // All retries and media options have been exhausted.
+                                // Immediately trying to restart loading could cause loop loading.
+                                // Consider modifying loading policies to best fit your asset and network
+                                // conditions (manifestLoadPolicy, playlistLoadPolicy, fragLoadPolicy).
+                                break;
+                            default:
+                                // cannot recover
+                                console.error('cannot recover', data);
+                                break;
+                            }
+                        }
+                    });
+
                     this.hls.loadSource(this.src);
                     this.hls.attachMedia(this.video);
                 }
             },
             closePlayer() {
-                console.log(`closePlayer(): src = ${this.src}`);
                 this.open = false;
                 if (this.hls !== null) {
                     this.hls.destroy();
