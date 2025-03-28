@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"log/slog"
+	"net/http"
 	"path/filepath"
 	"time"
 
@@ -74,5 +75,11 @@ func WithCorsMaxAge(age time.Duration) HttpServerOption {
 	return func(hs *HttpServer) {
 		hs.enableCors = true
 		hs.corsMaxAge = age
+	}
+}
+
+func WithHandler(handler http.Handler) HttpServerOption {
+	return func(hs *HttpServer) {
+		hs.handler = handler
 	}
 }

@@ -23,6 +23,7 @@ import (
 )
 
 type HttpServer struct {
+	handler              http.Handler
 	httpRoot             string
 	certificateFile      string
 	keyFile              string
@@ -91,62 +92,63 @@ func New(listen, root string, opts ...HttpServerOption) (*HttpServer, error) {
 	}
 
 	// set up http mux
-	mux := http.NewServeMux()
-	if hs.templatePath == "" {
-		httpFs := afero.NewHttpFs(hs.fs)
-		mux.Handle("/", http.FileServer(httpFs.Dir(hs.httpRoot)))
-	} else {
-		// load template
-		hs.logger.Info("using custom template for file browser", "template", hs.templatePath)
-		if hs.templatePath != "" {
-			tmpl, err := template.
-				New(filepath.Base(hs.templatePath)).
-				Funcs(template.FuncMap{
-					"add":        add,
-					"hasPrefix":  strings.HasPrefix,
-					"hasSuffix":  strings.HasSuffix,
-					"pathjoin":   path.Join,
-					"split":      strings.Split,
-					"trimPrefix": strings.TrimPrefix,
-					"trimSuffix": strings.TrimSuffix,
-				}).
-				ParseFiles(hs.templatePath)
-			if err != nil {
-				return nil, fmt.Errorf("could not load template: %w", err)
+	if hs.handler == nil {
+		mux := http.NewServeMux()
+		if hs.templatePath == "" {
+			httpFs := afero.NewHttpFs(hs.fs)
+			mux.Handle("/", http.FileServer(httpFs.Dir(hs.httpRoot)))
+		} else {
+			// load template
+			hs.logger.Info("using custom template for file browser", "template", hs.templatePath)
+			if hs.templatePath != "" {
+				tmpl, err := template.
+					New(filepath.Base(hs.templatePath)).
+					Funcs(template.FuncMap{
+						"add":        add,
+						"hasPrefix":  strings.HasPrefix,
+						"hasSuffix":  strings.HasSuffix,
+						"pathjoin":   path.Join,
+						"split":      strings.Split,
+						"trimPrefix": strings.TrimPrefix,
+						"trimSuffix": strings.TrimSuffix,
+					}).
+					ParseFiles(hs.templatePath)
+				if err != nil {
+					return nil, fmt.Errorf("could not load template: %w", err)
+				}
+				hs.logger.Debug("template loaded", "templates", tmpl.DefinedTemplates())
+
+				hs.browserTemplate = tmpl
 			}
-			hs.logger.Debug("template loaded", "templates", tmpl.DefinedTemplates())
-
-			hs.browserTemplate = tmpl
+			mux.HandleFunc("/", hs.fileHandler)
 		}
-		mux.HandleFunc("/", hs.fileHandler)
-	}
 
-	// add final chain of handlers/middleware
-	var handler http.Handler
-	if hs.enableCors {
-		hs.logger.Debug(
-			"enabling CORS support",
-			"origins", hs.corsAllowedOrigins,
-			"methods", hs.corsAllowedMethods,
-			"headers", hs.corsAllowedHeaders,
-			"credentials", hs.corsAllowCredentials,
-			"max-age", hs.corsMaxAge,
-		)
-		c := cors.New(cors.Options{
-			AllowedOrigins:   hs.corsAllowedOrigins,
-			AllowedMethods:   hs.corsAllowedMethods,
-			AllowedHeaders:   hs.corsAllowedHeaders,
-			AllowCredentials: hs.corsAllowCredentials,
-		})
-		handler = c.Handler(mux)
+		// add final chain of handlers/middleware
+		if hs.enableCors {
+			hs.logger.Debug(
+				"enabling CORS support",
+				"origins", hs.corsAllowedOrigins,
+				"methods", hs.corsAllowedMethods,
+				"headers", hs.corsAllowedHeaders,
+				"credentials", hs.corsAllowCredentials,
+				"max-age", hs.corsMaxAge,
+			)
+			c := cors.New(cors.Options{
+				AllowedOrigins:   hs.corsAllowedOrigins,
+				AllowedMethods:   hs.corsAllowedMethods,
+				AllowedHeaders:   hs.corsAllowedHeaders,
+				AllowCredentials: hs.corsAllowCredentials,
+			})
+			hs.handler = c.Handler(mux)
+		}
+		hs.handler = sloghttp.Recovery(hs.handler)
+		hs.handler = sloghttp.New(hs.logger)(hs.handler)
 	}
-	handler = sloghttp.Recovery(handler)
-	handler = sloghttp.New(hs.logger)(handler)
 
 	// set up http server
 	srv := &http.Server{
 		Addr:         listen,
-		Handler:      handler,
+		Handler:      hs.handler,
 		ReadTimeout:  hs.readTimeout,
 		WriteTimeout: hs.writeTimeout,
 		TLSConfig:    tlsConfig,
